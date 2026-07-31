@@ -120,27 +120,17 @@ jobs:
           " >> $GITHUB_OUTPUT
 
       - name: Post results comment
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
-            const score = ${{ steps.eval.outputs.score }};
-            const successRate = ${{ steps.eval.outputs.success_rate }};
-            const championScore = ${{ steps.compare.outputs.champion_score }};
+            const score = Number('${{ steps.eval.outputs.score }}');
+            const successRate = Number('${{ steps.eval.outputs.success_rate }}');
+            const championScore = Number('${{ steps.compare.outputs.champion_score }}');
             const beats = '${{ steps.compare.outputs.beats_champion }}' === 'true';
             
             const status = beats ? 'NEW CHAMPION' : 'Does not beat champion';
-            const body = `## Arena Results
-            
-            | Metric | Value |
-            |--------|-------|
-            | Score | ${score.toFixed(4)} |
-            | Success Rate | ${(successRate * 100).toFixed(1)}% |
-            | Champion Score | ${championScore.toFixed(4)} |
-            | Status | ${status} |
-            | Seeds | 1000 |
-            
-            ${beats ? 'Your policy beats the current champion! This PR will be merged.' : 'Your policy does not beat the current champion. Keep training!'}
-            `;
+            const body = `## Arena Results\n\n| Metric | Value |\n|--------|-------|\n| Score | ${score.toFixed(4)} |\n| Success Rate | ${(successRate * 100).toFixed(1)}% |\n| Champion Score | ${championScore.toFixed(4)} |\n| Status | ${status} |\n| Seeds | 1000 |\n\n${beats ? 'Your policy beats the current champion! This PR will be merged.' : 'Your policy does not beat the current champion. Keep training!'}\n`;
             
             github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -150,13 +140,14 @@ jobs:
             });
 
       - name: Fail if not champion
-        if: steps.compare.outputs.beats_champion != 'true'
+        if: always()
         run: exit 0
 
   render:
     name: Render Video
     runs-on: [self-hosted, render]
     needs: compete
+    if: always()
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
