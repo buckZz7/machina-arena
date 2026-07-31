@@ -17,9 +17,20 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Vulkan (software rendering)
         run: |
-          pip install mani-skill gymnasium numpy torch imageio huggingface_hub defusedxml dacite pytorch_kinematics_ms ipython  --quiet
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libvulkan1 vulkan-tools mesa-vulkan-drivers 2>/dev/null || true
+          # Create a software Vulkan ICD using lavapipe
+          mkdir -p /etc/vulkan/icd.d
+          echo '{"file_format_version":"1.0.0","ICD":{"library_path":"/usr/lib/x86_64-linux-gnu/libvulkan_lavapipe.so","api_version":"1.2"}}' > /etc/vulkan/icd.d/lavapipe_icd.json
+          export VK_ICD_FILENAMES=/etc/vulkan/icd.d/lavapipe_icd.json
+          echo "VK_ICD_FILENAMES=$VK_ICD_FILENAMES" >> $GITHUB_ENV
+          vulkaninfo --summary 2>/dev/null || echo "vulkaninfo not available but continuing"
+
+      - name: Install Python dependencies
+        run: |
+          pip install mani-skill gymnasium numpy torch imageio huggingface_hub defusedxml dacite pytorch_kinematics_ms ipython --quiet
 
       - name: Find submitted policy
         id: find
@@ -32,6 +43,8 @@ jobs:
           echo "Found policy: $POLICY_DIR for task: $TASK_ID"
 
       - name: Validate policy loads and produces valid actions
+        env:
+          VK_ICD_FILENAMES: /etc/vulkan/icd.d/lavapipe_icd.json
         run: |
           python -m machina_arena.eval \
             --task ${{ steps.find.outputs.task_id }} \
@@ -51,11 +64,21 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Vulkan (software rendering)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libvulkan1 vulkan-tools mesa-vulkan-drivers 2>/dev/null || true
+          mkdir -p /etc/vulkan/icd.d
+          echo '{"file_format_version":"1.0.0","ICD":{"library_path":"/usr/lib/x86_64-linux-gnu/libvulkan_lavapipe.so","api_version":"1.2"}}' > /etc/vulkan/icd.d/lavapipe_icd.json
+          echo "VK_ICD_FILENAMES=/etc/vulkan/icd.d/lavapipe_icd.json" >> $GITHUB_ENV
+
+      - name: Install Python dependencies
         run: |
           pip install mani-skill gymnasium numpy torch imageio huggingface_hub defusedxml dacite pytorch_kinematics_ms ipython --quiet
 
       - name: Run competition evaluation
+        env:
+          VK_ICD_FILENAMES: /etc/vulkan/icd.d/lavapipe_icd.json
         id: eval
         run: |
           POLICY_DIR=$(find policies/ -name "policy.py" -exec dirname {} \; | head -1)
