@@ -17,13 +17,21 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Vulkan (lavapipe software rendering)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libvulkan1 mesa-vulkan-drivers 2>/dev/null
+          echo "VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json" >> $GITHUB_ENV
+
+      - name: Install Python dependencies
         run: |
           pip install mani-skill gymnasium numpy torch huggingface_hub defusedxml dacite pytorch_kinematics_ms ipython --quiet
+          pip install -e . --quiet
 
       - name: Find submitted policy
         id: find
         run: |
+          # Find the policy directory in the PR
           POLICY_DIR=$(find policies/ -name "policy.py" -exec dirname {} \; | head -1)
           TASK_ID=$(echo "$POLICY_DIR" | cut -d'/' -f2)
           echo "policy_dir=$POLICY_DIR" >> $GITHUB_OUTPUT
@@ -31,8 +39,9 @@ jobs:
           echo "Found policy: $POLICY_DIR for task: $TASK_ID"
 
       - name: Validate policy loads and produces valid actions
+        env:
+          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
         run: |
-          pip install -e . --quiet
           python -m machina_arena.eval \
             --task ${{ steps.find.outputs.task_id }} \
             --policy ${{ steps.find.outputs.policy_dir }} \
@@ -51,12 +60,20 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Vulkan (lavapipe software rendering)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libvulkan1 mesa-vulkan-drivers 2>/dev/null
+          echo "VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json" >> $GITHUB_ENV
+
+      - name: Install Python dependencies
         run: |
           pip install mani-skill gymnasium numpy torch huggingface_hub defusedxml dacite pytorch_kinematics_ms ipython --quiet
           pip install -e . --quiet
 
       - name: Run competition evaluation
+        env:
+          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
         id: eval
         run: |
           POLICY_DIR=$(find policies/ -name "policy.py" -exec dirname {} \; | head -1)
