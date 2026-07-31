@@ -34,6 +34,8 @@ class PickCubeSO100Task(TaskSpec):
             "PickCubeSO100-v1",
             obs_mode=kwargs.get("obs_mode", "state"),
             max_episode_steps=self.info().max_episode_steps,
-            **{k: v for k, v in kwargs.items() if k not in ("obs_mode", "render_mode")}
+            num_envs=1,
+            render_backend=kwargs.get("render_backend", "none"),
+            **{k: v for k, v in kwargs.items() if k not in ("obs_mode", "render_backend")}
         )
         return env

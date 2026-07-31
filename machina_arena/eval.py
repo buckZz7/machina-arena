@@ -82,6 +82,11 @@ def evaluate(
     for i, seed in enumerate(seeds):
         env = task.build_env(seed=seed)
         obs, info_dict = env.reset(seed=seed)
+        # Convert initial obs to numpy for the policy
+        if hasattr(obs, 'numpy'):
+            obs = obs.cpu().numpy() if hasattr(obs, 'cpu') else obs.numpy()
+        elif isinstance(obs, dict):
+            obs = {k: (v.cpu().numpy() if hasattr(v, 'cpu') else v) for k, v in obs.items()}
 
         total_reward = 0.0
         done = False
@@ -89,11 +94,20 @@ def evaluate(
 
         while not done:
             action = policy.predict(obs)
+            # Convert to numpy if needed
+            if hasattr(action, 'numpy'):
+                action = action.numpy()
+            elif not isinstance(action, np.ndarray):
+                action = np.array(action, dtype=np.float32)
             obs, reward, terminated, truncated, info_dict = env.step(action)
+            # Convert obs to numpy for the policy
+            if hasattr(obs, 'numpy'):
+                obs = obs.cpu().numpy() if hasattr(obs, 'cpu') else obs.numpy()
+            elif isinstance(obs, dict):
+                obs = {k: (v.cpu().numpy() if hasattr(v, 'cpu') else v) for k, v in obs.items()}
             total_reward += float(reward)
-            done = terminated or truncated
-            if info_dict.get("success", False):
-                success = True
+            done = bool(terminated or truncated)
+            success = bool(info_dict.get("success", False))
 
         # Normalized score: ManiSkill's compute_normalized_dense_reward returns [0, 1]
         # If the env has it, use it. Otherwise normalize by max possible reward.

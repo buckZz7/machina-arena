@@ -9,7 +9,7 @@ jobs:
   validate:
     name: Validate Policy
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -17,30 +17,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Vulkan (software rendering)
+      - name: Install dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq libvulkan1 vulkan-tools mesa-vulkan-drivers mesa-utils 2>/dev/null || true
-          # Find the lavapipe shared library
-          LAVAPIPE=$(find /usr/lib -name "libvulkan_lavapipe*" 2>/dev/null | head -1)
-          if [ -z "$LAVAPIPE" ]; then
-            LAVAPIPE=$(find /usr/lib -name "*lavapipe*" 2>/dev/null | head -1)
-          fi
-          echo "Found lavapipe: $LAVAPIPE"
-          # Create ICD file
-          sudo mkdir -p /etc/vulkan/icd.d
-          sudo bash -c "echo '{\"file_format_version\":\"1.0.0\",\"ICD\":{\"library_path\":\"${LAVAPIPE}\",\"api_version\":\"1.2\"}}' > /etc/vulkan/icd.d/lavapipe_icd.json"
-          echo "VK_ICD_FILENAMES=/etc/vulkan/icd.d/lavapipe_icd.json" >> $GITHUB_ENV
-          vulkaninfo --summary 2>/dev/null || echo "vulkaninfo not available but continuing"
-
-      - name: Install Python dependencies
-        run: |
-          pip install mani-skill gymnasium numpy torch imageio huggingface_hub defusedxml dacite pytorch_kinematics_ms ipython --quiet
+          pip install mani-skill gymnasium numpy torch huggingface_hub defusedxml dacite pytorch_kinematics_ms ipython --quiet
 
       - name: Find submitted policy
         id: find
         run: |
-          # Find the policy directory in the PR
           POLICY_DIR=$(find policies/ -name "policy.py" -exec dirname {} \; | head -1)
           TASK_ID=$(echo "$POLICY_DIR" | cut -d'/' -f2)
           echo "policy_dir=$POLICY_DIR" >> $GITHUB_OUTPUT
@@ -48,9 +31,8 @@ jobs:
           echo "Found policy: $POLICY_DIR for task: $TASK_ID"
 
       - name: Validate policy loads and produces valid actions
-        env:
-          VK_ICD_FILENAMES: /etc/vulkan/icd.d/lavapipe_icd.json
         run: |
+          pip install -e . --quiet
           python -m machina_arena.eval \
             --task ${{ steps.find.outputs.task_id }} \
             --policy ${{ steps.find.outputs.policy_dir }} \
@@ -61,7 +43,7 @@ jobs:
     name: Competition Evaluation
     runs-on: ubuntu-latest
     needs: validate
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -69,25 +51,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Vulkan (software rendering)
+      - name: Install dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq libvulkan1 vulkan-tools mesa-vulkan-drivers mesa-utils 2>/dev/null || true
-          LAVAPIPE=$(find /usr/lib -name "libvulkan_lavapipe*" 2>/dev/null | head -1)
-          if [ -z "$LAVAPIPE" ]; then
-            LAVAPIPE=$(find /usr/lib -name "*lavapipe*" 2>/dev/null | head -1)
-          fi
-          sudo mkdir -p /etc/vulkan/icd.d
-          sudo bash -c "echo '{\"file_format_version\":\"1.0.0\",\"ICD\":{\"library_path\":\"${LAVAPIPE}\",\"api_version\":\"1.2\"}}' > /etc/vulkan/icd.d/lavapipe_icd.json"
-          echo "VK_ICD_FILENAMES=/etc/vulkan/icd.d/lavapipe_icd.json" >> $GITHUB_ENV
-
-      - name: Install Python dependencies
-        run: |
-          pip install mani-skill gymnasium numpy torch imageio huggingface_hub defusedxml dacite pytorch_kinematics_ms ipython --quiet
+          pip install mani-skill gymnasium numpy torch huggingface_hub defusedxml dacite pytorch_kinematics_ms ipython --quiet
+          pip install -e . --quiet
 
       - name: Run competition evaluation
-        env:
-          VK_ICD_FILENAMES: /etc/vulkan/icd.d/lavapipe_icd.json
         id: eval
         run: |
           POLICY_DIR=$(find policies/ -name "policy.py" -exec dirname {} \; | head -1)
@@ -98,7 +67,6 @@ jobs:
             --policy "$POLICY_DIR" \
             --seeds 1000 \
             --salt ${{ github.event.pull_request.number }} \
-            --render \
             --output /tmp/result.json
 
           SCORE=$(python -c "import json; print(json.load(open('/tmp/result.json'))['score'])")
@@ -111,11 +79,11 @@ jobs:
         run: |
           CHAMPION_SCORE=$(python -c "import json; lb=json.load(open('leaderboard.json')); t=lb['tasks'].get('${{ steps.find.outputs.task_id }}', {}); print(t.get('champion_score', 0) or 0)")
           echo "champion_score=$CHAMPION_SCORE" >> $GITHUB_OUTPUT
-          if (( $(echo "${{ steps.eval.outputs.score }} > $CHAMPION_SCORE" | bc -l) )); then
-            echo "beats_champion=true" >> $GITHUB_OUTPUT
-          else
-            echo "beats_champion=false" >> $GITHUB_OUTPUT
-          fi
+          python -c "
+          challenger = ${{ steps.eval.outputs.score }}
+          champion = $CHAMPION_SCORE
+          print('beats_champion=true' if challenger > champion else 'beats_champion=false')
+          " >> $GITHUB_OUTPUT
 
       - name: Post results comment
         uses: actions/github-script@v7
