@@ -1,0 +1,17 @@
+{
+  "tasks": {
+    "pickcube-v1": {
+      "task_id": "pickcube-v1",
+      "name": "Pick Cube (SO-100)",
+      "robot": "so100",
+      "backend": "maniskill",
+      "difficulty": "v1",
+      "champion": null,
+      "champion_score": null,
+      "champion_pr": null,
+      "champion_date": null,
+      "history": []
+    }
+  },
+  "last_updated": null
+}

@@ -1,0 +1,122 @@
+name: Arena Evaluation
+
+on:
+  pull_request:
+    paths:
+      - 'policies/**'
+
+jobs:
+  validate:
+    name: Validate Policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install mani-skill gymnasium numpy torch --quiet
+
+      - name: Find submitted policy
+        id: find
+        run: |
+          # Find the policy directory in the PR
+          POLICY_DIR=$(find policies/ -name "policy.py" -exec dirname {} \; | head -1)
+          TASK_ID=$(echo "$POLICY_DIR" | cut -d'/' -f2)
+          echo "policy_dir=$POLICY_DIR" >> $GITHUB_OUTPUT
+          echo "task_id=$TASK_ID" >> $GITHUB_OUTPUT
+          echo "Found policy: $POLICY_DIR for task: $TASK_ID"
+
+      - name: Validate policy loads and produces valid actions
+        run: |
+          python -m machina_arena.eval \
+            --task ${{ steps.find.outputs.task_id }} \
+            --policy ${{ steps.find.outputs.policy_dir }} \
+            --seeds 10 \
+            --salt ${{ github.event.pull_request.number }}
+
+  compete:
+    name: Competition Evaluation
+    runs-on: ubuntu-latest
+    needs: validate
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install mani-skill gymnasium numpy torch imageio --quiet
+
+      - name: Run competition evaluation
+        id: eval
+        run: |
+          POLICY_DIR=$(find policies/ -name "policy.py" -exec dirname {} \; | head -1)
+          TASK_ID=$(echo "$POLICY_DIR" | cut -d'/' -f2)
+
+          python -m machina_arena.eval \
+            --task "$TASK_ID" \
+            --policy "$POLICY_DIR" \
+            --seeds 1000 \
+            --salt ${{ github.event.pull_request.number }} \
+            --render \
+            --output /tmp/result.json
+
+          SCORE=$(python -c "import json; print(json.load(open('/tmp/result.json'))['score'])")
+          SUCCESS=$(python -c "import json; print(json.load(open('/tmp/result.json'))['success_rate'])")
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "success_rate=$SUCCESS" >> $GITHUB_OUTPUT
+
+      - name: Compare to champion
+        id: compare
+        run: |
+          CHAMPION_SCORE=$(python -c "import json; lb=json.load(open('leaderboard.json')); t=lb['tasks'].get('${{ steps.find.outputs.task_id }}', {}); print(t.get('champion_score', 0) or 0)")
+          echo "champion_score=$CHAMPION_SCORE" >> $GITHUB_OUTPUT
+          if (( $(echo "${{ steps.eval.outputs.score }} > $CHAMPION_SCORE" | bc -l) )); then
+            echo "beats_champion=true" >> $GITHUB_OUTPUT
+          else
+            echo "beats_champion=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post results comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const score = ${{ steps.eval.outputs.score }};
+            const successRate = ${{ steps.eval.outputs.success_rate }};
+            const championScore = ${{ steps.compare.outputs.champion_score }};
+            const beats = ${{ steps.compare.outputs.beats_champion }};
+            
+            const status = beats ? 'NEW CHAMPION' : 'Does not beat champion';
+            const body = `## Arena Results
+            
+            | Metric | Value |
+            |--------|-------|
+            | Score | ${score.toFixed(4)} |
+            | Success Rate | ${(successRate * 100).toFixed(1)}% |
+            | Champion Score | ${championScore.toFixed(4)} |
+            | Status | ${status} |
+            | Seeds | 1000 |
+            
+            ${beats ? 'Your policy beats the current champion! This PR will be merged.' : 'Your policy does not beat the current champion. Keep training!'}
+            `;
+            
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: body
+            });
+
+      - name: Fail if not champion
+        if: steps.compare.outputs.beats_champion != 'true'
+        run: |
+          echo "Policy does not beat champion. Closing is handled by maintainer."
+          exit 0
