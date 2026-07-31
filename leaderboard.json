@@ -10,6 +10,7 @@
       "champion_score": 0.1085,
       "champion_pr": 10,
       "champion_date": "2026-07-31",
+      "champion_video": null,
       "history": [
         {
           "miner": "test-dummy",
@@ -17,7 +18,8 @@
           "success_rate": 0.01,
           "pr": 10,
           "date": "2026-07-31",
-          "status": "merged"
+          "status": "merged",
+          "video_url": null
         }
       ]
     }
