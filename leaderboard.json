@@ -6,12 +6,21 @@
       "robot": "so100",
       "backend": "maniskill",
       "difficulty": "v1",
-      "champion": null,
-      "champion_score": null,
-      "champion_pr": null,
-      "champion_date": null,
-      "history": []
+      "champion": "test-dummy",
+      "champion_score": 0.1085,
+      "champion_pr": 10,
+      "champion_date": "2026-07-31",
+      "history": [
+        {
+          "miner": "test-dummy",
+          "score": 0.1085,
+          "success_rate": 0.01,
+          "pr": 10,
+          "date": "2026-07-31",
+          "status": "merged"
+        }
+      ]
     }
   },
-  "last_updated": null
+  "last_updated": "2026-07-31"
 }
