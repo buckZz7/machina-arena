@@ -20,12 +20,17 @@ jobs:
       - name: Install Vulkan (software rendering)
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libvulkan1 vulkan-tools mesa-vulkan-drivers 2>/dev/null || true
-          # Create a software Vulkan ICD using lavapipe
-          mkdir -p /etc/vulkan/icd.d
-          echo '{"file_format_version":"1.0.0","ICD":{"library_path":"/usr/lib/x86_64-linux-gnu/libvulkan_lavapipe.so","api_version":"1.2"}}' > /etc/vulkan/icd.d/lavapipe_icd.json
-          export VK_ICD_FILENAMES=/etc/vulkan/icd.d/lavapipe_icd.json
-          echo "VK_ICD_FILENAMES=$VK_ICD_FILENAMES" >> $GITHUB_ENV
+          sudo apt-get install -y -qq libvulkan1 vulkan-tools mesa-vulkan-drivers mesa-utils 2>/dev/null || true
+          # Find the lavapipe shared library
+          LAVAPIPE=$(find /usr/lib -name "libvulkan_lavapipe*" 2>/dev/null | head -1)
+          if [ -z "$LAVAPIPE" ]; then
+            LAVAPIPE=$(find /usr/lib -name "*lavapipe*" 2>/dev/null | head -1)
+          fi
+          echo "Found lavapipe: $LAVAPIPE"
+          # Create ICD file
+          sudo mkdir -p /etc/vulkan/icd.d
+          sudo bash -c "echo '{\"file_format_version\":\"1.0.0\",\"ICD\":{\"library_path\":\"${LAVAPIPE}\",\"api_version\":\"1.2\"}}' > /etc/vulkan/icd.d/lavapipe_icd.json"
+          echo "VK_ICD_FILENAMES=/etc/vulkan/icd.d/lavapipe_icd.json" >> $GITHUB_ENV
           vulkaninfo --summary 2>/dev/null || echo "vulkaninfo not available but continuing"
 
       - name: Install Python dependencies
@@ -67,9 +72,13 @@ jobs:
       - name: Install Vulkan (software rendering)
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libvulkan1 vulkan-tools mesa-vulkan-drivers 2>/dev/null || true
-          mkdir -p /etc/vulkan/icd.d
-          echo '{"file_format_version":"1.0.0","ICD":{"library_path":"/usr/lib/x86_64-linux-gnu/libvulkan_lavapipe.so","api_version":"1.2"}}' > /etc/vulkan/icd.d/lavapipe_icd.json
+          sudo apt-get install -y -qq libvulkan1 vulkan-tools mesa-vulkan-drivers mesa-utils 2>/dev/null || true
+          LAVAPIPE=$(find /usr/lib -name "libvulkan_lavapipe*" 2>/dev/null | head -1)
+          if [ -z "$LAVAPIPE" ]; then
+            LAVAPIPE=$(find /usr/lib -name "*lavapipe*" 2>/dev/null | head -1)
+          fi
+          sudo mkdir -p /etc/vulkan/icd.d
+          sudo bash -c "echo '{\"file_format_version\":\"1.0.0\",\"ICD\":{\"library_path\":\"${LAVAPIPE}\",\"api_version\":\"1.2\"}}' > /etc/vulkan/icd.d/lavapipe_icd.json"
           echo "VK_ICD_FILENAMES=/etc/vulkan/icd.d/lavapipe_icd.json" >> $GITHUB_ENV
 
       - name: Install Python dependencies
