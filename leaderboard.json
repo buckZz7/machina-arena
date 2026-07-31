@@ -6,11 +6,11 @@
       "robot": "so100",
       "backend": "maniskill",
       "difficulty": "v1",
-      "champion": "test-dummy",
+      "champion": "test-render",
       "champion_score": 0.1085,
-      "champion_pr": 10,
+      "champion_pr": 11,
       "champion_date": "2026-07-31",
-      "champion_video": null,
+      "champion_video": "https://github.com/buckZz7/machina-arena/releases/download/render-pr-11/render.mp4",
       "history": [
         {
           "miner": "test-dummy",
@@ -20,6 +20,15 @@
           "date": "2026-07-31",
           "status": "merged",
           "video_url": null
+        },
+        {
+          "miner": "test-render",
+          "score": 0.1085,
+          "success_rate": 0.015,
+          "pr": 11,
+          "date": "2026-07-31",
+          "status": "merged",
+          "video_url": "https://github.com/buckZz7/machina-arena/releases/download/render-pr-11/render.mp4"
         }
       ]
     }

@@ -216,11 +216,12 @@
                         <th>Miner</th>
                         <th>Score</th>
                         <th>Status</th>
+                        <th>Video</th>
                         <th>Date</th>
                     </tr>
                 </thead>
                 <tbody id="submission-body">
-                    <tr><td colspan="5" class="empty">No submissions yet. Be the first.</td></tr>
+                    <tr><td colspan="6" class="empty">No submissions yet. Be the first.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -277,7 +278,8 @@
                     <div class="champion-box">
                         <div class="label">Current Champion</div>
                         <div class="name">${t.champion}</div>
-                        <div class="score">Score: ${t.champion_score.toFixed(4)} | PR #${t.champion_pr}</div>
+                        <div class="score">Score: ${(t.champion_score || 0).toFixed(4)} | PR #${t.champion_pr}</div>
+                        ${t.champion_video ? `<a href="${t.champion_video}" target="_blank" style="color:#7170ff;font-size:13px;">Watch champion video</a>` : ''}
                     </div>
                 ` : `
                     <div class="no-champion">No champion yet &mdash; be the first</div>
@@ -302,11 +304,12 @@
                 <td>${s.miner}</td>
                 <td>
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <span>${s.score.toFixed(4)}</span>
-                        <div class="score-bar"><div class="score-fill" style="width:${s.score*100}%"></div></div>
+                        <span>${(s.score || 0).toFixed(4)}</span>
+                        <div class="score-bar"><div class="score-fill" style="width:${(s.score || 0)*100}%"></div></div>
                     </div>
                 </td>
                 <td class="status-${s.status}">${s.status}</td>
+                <td>${s.video_url ? `<a href="${s.video_url}" target="_blank" style="color:#7170ff;">Watch</a>` : 'No video'}</td>
                 <td>${s.date || 'N/A'}</td>
             </tr>
         `).join('');
