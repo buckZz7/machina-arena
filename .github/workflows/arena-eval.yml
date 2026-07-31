@@ -20,8 +20,20 @@ jobs:
       - name: Install Vulkan (lavapipe software rendering)
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libvulkan1 mesa-vulkan-drivers 2>/dev/null
-          echo "VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json" >> $GITHUB_ENV
+          sudo apt-get install -y -qq libvulkan1 mesa-vulkan-drivers vulkan-tools 2>/dev/null
+          # Find the lavapipe ICD file dynamically
+          LVP_ICD=$(find /usr/share/vulkan /etc/vulkan -name "*lvp*" -o -name "*lavapipe*" 2>/dev/null | head -1)
+          if [ -z "$LVP_ICD" ]; then
+            LVP_LIB=$(find /usr/lib -name "libvulkan_lvp.so" 2>/dev/null | head -1)
+            if [ -n "$LVP_LIB" ]; then
+              echo '{"file_format_version":"1.0.0","ICD":{"library_path":"'"$LVP_LIB"'","api_version":"1.2"}}' > /tmp/lvp_icd.json
+              LVP_ICD=/tmp/lvp_icd.json
+            fi
+          fi
+          echo "Found lavapipe ICD: $LVP_ICD"
+          echo "LVP_ICD=$LVP_ICD" >> $GITHUB_ENV
+          echo "VK_ICD_FILENAMES=$LVP_ICD" >> $GITHUB_ENV
+          vulkaninfo --summary 2>&1 | head -10 || true
 
       - name: Install Python dependencies
         run: |
@@ -31,7 +43,6 @@ jobs:
       - name: Find submitted policy
         id: find
         run: |
-          # Find the policy directory in the PR
           POLICY_DIR=$(find policies/ -name "policy.py" -exec dirname {} \; | head -1)
           TASK_ID=$(echo "$POLICY_DIR" | cut -d'/' -f2)
           echo "policy_dir=$POLICY_DIR" >> $GITHUB_OUTPUT
@@ -39,8 +50,6 @@ jobs:
           echo "Found policy: $POLICY_DIR for task: $TASK_ID"
 
       - name: Validate policy loads and produces valid actions
-        env:
-          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
         run: |
           python -m machina_arena.eval \
             --task ${{ steps.find.outputs.task_id }} \
@@ -63,8 +72,16 @@ jobs:
       - name: Install Vulkan (lavapipe software rendering)
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libvulkan1 mesa-vulkan-drivers 2>/dev/null
-          echo "VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json" >> $GITHUB_ENV
+          sudo apt-get install -y -qq libvulkan1 mesa-vulkan-drivers vulkan-tools 2>/dev/null
+          LVP_ICD=$(find /usr/share/vulkan /etc/vulkan -name "*lvp*" -o -name "*lavapipe*" 2>/dev/null | head -1)
+          if [ -z "$LVP_ICD" ]; then
+            LVP_LIB=$(find /usr/lib -name "libvulkan_lvp.so" 2>/dev/null | head -1)
+            if [ -n "$LVP_LIB" ]; then
+              echo '{"file_format_version":"1.0.0","ICD":{"library_path":"'"$LVP_LIB"'","api_version":"1.2"}}' > /tmp/lvp_icd.json
+              LVP_ICD=/tmp/lvp_icd.json
+            fi
+          fi
+          echo "VK_ICD_FILENAMES=$LVP_ICD" >> $GITHUB_ENV
 
       - name: Install Python dependencies
         run: |
@@ -72,8 +89,6 @@ jobs:
           pip install -e . --quiet
 
       - name: Run competition evaluation
-        env:
-          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
         id: eval
         run: |
           POLICY_DIR=$(find policies/ -name "policy.py" -exec dirname {} \; | head -1)
@@ -137,3 +152,22 @@ jobs:
         run: |
           echo "Policy does not beat champion. Closing is handled by maintainer."
           exit 0
+
+  deploy-pages:
+    name: Deploy Dashboard
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deployment
+        uses: actions/deploy-pages@v4
