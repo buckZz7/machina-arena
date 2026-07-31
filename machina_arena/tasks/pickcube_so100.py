@@ -7,6 +7,7 @@ This task wraps ManiSkill's built-in PickCubeSO100-v1 environment.
 """
 
 import gymnasium as gym
+import mani_skill.envs  # noqa: F401 — registers all ManiSkill environments
 
 from machina_arena.task_spec import TaskSpec, TaskInfo
 
@@ -32,7 +33,7 @@ class PickCubeSO100Task(TaskSpec):
         env = gym.make(
             "PickCubeSO100-v1",
             obs_mode=kwargs.get("obs_mode", "state"),
-            render_mode=kwargs.get("render_mode", "rgb_array"),
             max_episode_steps=self.info().max_episode_steps,
+            **{k: v for k, v in kwargs.items() if k not in ("obs_mode", "render_mode")}
         )
         return env

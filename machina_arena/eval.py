@@ -90,15 +90,18 @@ def evaluate(
         while not done:
             action = policy.predict(obs)
             obs, reward, terminated, truncated, info_dict = env.step(action)
-            total_reward += reward
+            total_reward += float(reward)
             done = terminated or truncated
             if info_dict.get("success", False):
                 success = True
 
-        # Normalized score (ManiSkill provides compute_normalized_dense_reward)
-        # If the env has it, use it. Otherwise use total_reward / max_episode_steps.
-        max_reward = getattr(env, "_max_reward", info.max_episode_steps)
-        norm_reward = total_reward / max_reward if max_reward > 0 else total_reward
+        # Normalized score: ManiSkill's compute_normalized_dense_reward returns [0, 1]
+        # If the env has it, use it. Otherwise normalize by max possible reward.
+        try:
+            norm_reward = float(env.compute_normalized_dense_reward(obs, action=action, info=info_dict))
+        except Exception:
+            max_steps = task.info().max_episode_steps
+            norm_reward = total_reward / max_steps if max_steps > 0 else total_reward
 
         scores.append(float(norm_reward))
         successes.append(float(success))
