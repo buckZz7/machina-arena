@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machina Arena</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #08090a;
+            color: #e4e4e7;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+        }
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+        
+        header {
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            background: #08090a;
+            z-index: 100;
+        }
+        .header-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            text-decoration: none;
+        }
+        .logo span { color: #7170ff; }
+        .header-links { display: flex; gap: 20px; }
+        .header-links a {
+            color: #a1a1aa;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        .header-links a:hover { color: #fff; }
+        
+        .hero {
+            padding: 80px 0 60px;
+            text-align: center;
+        }
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+        .hero p {
+            font-size: 20px;
+            color: #a1a1aa;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .section { padding: 40px 0; }
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #7170ff;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 24px;
+        }
+        
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+        }
+        .task-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 24px;
+            transition: border-color 0.2s;
+        }
+        .task-card:hover { border-color: rgba(255,255,255,0.12); }
+        .task-card h3 {
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+        .task-card .meta {
+            display: flex;
+            gap: 12px;
+            font-size: 13px;
+            color: #7170ff;
+            margin-bottom: 16px;
+        }
+        .task-card .meta span {
+            background: rgba(113,112,255,0.1);
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+        .task-card .desc {
+            font-size: 14px;
+            color: #a1a1aa;
+            margin-bottom: 16px;
+        }
+        .champion-box {
+            background: rgba(255,215,0,0.05);
+            border: 1px solid rgba(255,215,0,0.15);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+        }
+        .champion-box .label { color: #a1a1aa; font-size: 12px; margin-bottom: 4px; }
+        .champion-box .name { color: #FFD700; font-weight: 600; }
+        .champion-box .score { color: #a1a1aa; }
+        .no-champion {
+            color: #7170ff;
+            font-size: 14px;
+            font-style: italic;
+        }
+        
+        .leaderboard {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .leaderboard th {
+            text-align: left;
+            font-size: 12px;
+            color: #7170aa;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .leaderboard td {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 14px;
+        }
+        .leaderboard tr:hover td { background: rgba(255,255,255,0.02); }
+        .score-bar {
+            background: rgba(113,112,255,0.15);
+            border-radius: 4px;
+            height: 6px;
+            width: 100px;
+            display: inline-block;
+            overflow: hidden;
+        }
+        .score-fill {
+            background: #7170ff;
+            height: 100%;
+        }
+        .status-merged { color: #22c55e; }
+        .status-closed { color: #ef4444; }
+        .status-open { color: #f59e0b; }
+        
+        .empty {
+            text-align: center;
+            color: #7170aa;
+            padding: 40px;
+            font-style: italic;
+        }
+        
+        footer {
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding: 40px 0;
+            text-align: center;
+            color: #52525b;
+            font-size: 13px;
+        }
+        footer a { color: #7170ff; text-decoration: none; }
+        
+        #leaderboard-data { display: none; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-inner">
+                <a href="/" class="logo">Machina <span>Arena</span></a>
+                <div class="header-links">
+                    <a href="https://github.com/buckZz7/machina-arena">GitHub</a>
+                    <a href="https://github.com/buckZz7/machina-arena/blob/main/docs/MINING.md">Mine</a>
+                    <a href="https://gittensor.io">Gittensor</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="hero">
+        <div class="container">
+            <h1>Train in simulation.<br>Prove it in the arena.</h1>
+            <p>Open robotics policy competition. Submit your policy, beat the champion, earn TAO. Sim2real ready.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="container">
+            <h2 class="section-title">Active Tasks</h2>
+            <div class="task-grid" id="task-grid">
+                <div class="empty">Loading tasks...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="container">
+            <h2 class="section-title">Recent Submissions</h2>
+            <table class="leaderboard" id="submission-table">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Miner</th>
+                        <th>Score</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody id="submission-body">
+                    <tr><td colspan="5" class="empty">No submissions yet. Be the first.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="container">
+            <h2 class="section-title">How it works</h2>
+            <div style="color: #a1a1aa; font-size: 15px; line-height: 1.8; max-width: 700px;">
+                <p><strong style="color:#fff">1. We define tasks.</strong> Pick up a cube. Stack blocks. Turn a faucet. Each task has a success condition and a reward function.</p>
+                <p><strong style="color:#fff">2. You train a policy.</strong> Use any method. Keep your secret sauce.</p>
+                <p><strong style="color:#fff">3. You submit.</strong> Send us your policy weights + inference code. No training code needed.</p>
+                <p><strong style="color:#fff">4. The arena evaluates.</strong> Your policy runs on 1000+ random seeds. Average reward is your score.</p>
+                <p><strong style="color:#fff">5. Beat the champion.</strong> Higher score merges. You're the new champion. It gets harder over time.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>Machina Arena &mdash; open robotics policy competition. <a href="https://github.com/buckZz7/machina-arena">View on GitHub</a></p>
+        </div>
+    </footer>
+
+    <script>
+    // Load leaderboard data
+    fetch('https://raw.githubusercontent.com/buckZz7/machina-arena/main/leaderboard.json')
+        .then(r => r.json())
+        .then(data => {
+            renderTasks(data);
+            renderSubmissions(data);
+        })
+        .catch(err => {
+            document.getElementById('task-grid').innerHTML = '<div class="empty">Failed to load data.</div>';
+        });
+
+    function renderTasks(data) {
+        const grid = document.getElementById('task-grid');
+        const tasks = Object.values(data.tasks || {});
+        if (!tasks.length) {
+            grid.innerHTML = '<div class="empty">No tasks yet.</div>';
+            return;
+        }
+        grid.innerHTML = tasks.map(t => `
+            <div class="task-card">
+                <h3>${t.name}</h3>
+                <div class="meta">
+                    <span>${t.robot}</span>
+                    <span>${t.backend}</span>
+                    <span>${t.difficulty}</span>
+                </div>
+                <div class="desc">Task ID: ${t.task_id}</div>
+                ${t.champion ? `
+                    <div class="champion-box">
+                        <div class="label">Current Champion</div>
+                        <div class="name">${t.champion}</div>
+                        <div class="score">Score: ${t.champion_score.toFixed(4)} | PR #${t.champion_pr}</div>
+                    </div>
+                ` : `
+                    <div class="no-champion">No champion yet &mdash; be the first</div>
+                `}
+            </div>
+        `).join('');
+    }
+
+    function renderSubmissions(data) {
+        const body = document.getElementById('submission-body');
+        const all = [];
+        for (const [task_id, task] of Object.entries(data.tasks || {})) {
+            for (const h of (task.history || [])) {
+                all.push({ ...h, task_id });
+            }
+        }
+        all.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        if (!all.length) return;
+        body.innerHTML = all.slice(0, 20).map(s => `
+            <tr>
+                <td>${s.task_id}</td>
+                <td>${s.miner}</td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span>${s.score.toFixed(4)}</span>
+                        <div class="score-bar"><div class="score-fill" style="width:${s.score*100}%"></div></div>
+                    </div>
+                </td>
+                <td class="status-${s.status}">${s.status}</td>
+                <td>${s.date || 'N/A'}</td>
+            </tr>
+        `).join('');
+    }
+    </script>
+</body>
+</html>
