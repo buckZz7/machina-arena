@@ -1,1 +1,0 @@
-"""Machina Arena — Subnet package."""
